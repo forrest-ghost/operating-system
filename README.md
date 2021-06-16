@@ -12,3 +12,4 @@
  在fork>0时，即F_xy进程的内部再fork(),再创建一个子进程F_x；
 F_xy将参数x和y分别传递给F_x,F_y,进程F_x,F_y计算出函数结果后将结果传递给F_xy,再输出到屏幕上。
 ## 程序截图
+![运行截图](https://github.com/forrest-ghost/image-folder/blob/main/second_os_workonmachine.png)
