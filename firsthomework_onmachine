@@ -1,0 +1,238 @@
+
+  int pipe_xy_x1[2];      //存放F_xy和F_x的第一个无名管道标号
+
+  int pipe_xy_x2[2];      //存放F_xy和F_x的第二个无名管道标号
+
+  int pipe_xy_y1[2];      //存放F_xy和F_y的第一个无名管道标号
+
+  int pipe_xy_y2[2];      //存放F_xy和F_y的第二个无名管道标号
+
+  int independent_variable_x,independent_variable_y;  //自变量x和y
+
+  int dependent_variable_xy,dependent_variable_x,dependent_variable_y;   //因变量，在F_xy代表最终结果F_xy,F_x进程代表F_x,F_y进程代表F_y
+
+ 
+
+  //使用pipe()系统调用建立无名管道，建立不成功则程序退出，执行终止
+
+  if(pipe(pipe_xy_x1) < 0)
+
+  { 
+
+​    perror("pipe not create"); 
+
+​    exit(EXIT_FAILURE);
+
+  }  
+
+  if(pipe(pipe_xy_x2) < 0)
+
+  {
+
+​     perror("pipe not create"); 
+
+​     exit(EXIT_FAILURE);
+
+  }
+
+ 
+
+  if(pipe(pipe_xy_y1) < 0)
+
+  {
+
+​     perror("pipe not create"); 
+
+​     exit(EXIT_FAILURE);
+
+  }
+
+   if(pipe(pipe_xy_y2) < 0)
+
+  {
+
+​     perror("pipe not create"); 
+
+​     exit(EXIT_FAILURE);
+
+  }
+
+ 
+
+  //使用fork()系统调用建立子进程
+
+​    pid1=fork();
+
+​    //printf("创建进程pid1成功的进程号pid1=%d\n",pid1);
+
+​    if(pid1 <0)
+
+  {
+
+​     perror("process not create"); 
+
+​     exit(EXIT_FAILURE); 
+
+  }
+
+  else if (pid1==0)    //子进程F_y,负责计算F_y的值，通过管道pipe_xy_y1管道，得到自变量y的值，通过pipe_xy_y2将F_y写给F_xy进程；
+
+  {
+
+​    //F_y通过pipe_xy_y1的0端口读，pipe_xy_y2的1端口写；
+
+​    //因此关闭pipe_xy_y1的1端口，pipe_xy_y2的0端口；
+
+​    printf("first child pid is :%d\n",getpid());
+
+​    close(pipe_xy_y1[1]);
+
+​    close(pipe_xy_y2[0]);
+
+​    read(pipe_xy_y1[0],&independent_variable_y,sizeof(int));
+
+​    dependent_variable_y=Fy(independent_variable_y);
+
+​    write(pipe_xy_y2[1],&dependent_variable_y,sizeof(int));    
+
+​    //读写结束，关闭管道
+
+​    close(pipe_xy_y1[0]);
+
+​    close(pipe_xy_y2[1]);
+
+​    pid_y=getpid();
+
+​    printf("F_y进程的进程号pid_y=%d\n",pid_y);
+
+​    exit(EXIT_SUCCESS); 
+
+  }
+
+  else {
+
+​    printf("first parent pid is :%d\n",getpid());
+
+​    pid2=fork();
+
+​    //printf("创建进程pid2成功的进程号pid2=%d\n",pid2);
+
+​    if(pid2 <0)
+
+  {
+
+​     perror("process not create"); 
+
+​     exit(EXIT_FAILURE); 
+
+  }
+
+  else if (pid2==0) //子进程F_x,负责计算F_x
+
+  {
+
+​    //F_x通过pipe_xy_x1的0端口读，pipe_xy_x2的1端口写；
+
+​    //因此关闭pipe_xy_x1的1端口，pipe_xy_x2的0端口；
+
+​    printf("second child pid is :%d\n",getpid());
+
+​    close(pipe_xy_x1[1]);
+
+​    close(pipe_xy_x2[0]);
+
+​    read(pipe_xy_x1[0],&independent_variable_x,sizeof(int));
+
+​    dependent_variable_x=Fx(independent_variable_x);
+
+​    write(pipe_xy_x2[1],&dependent_variable_x,sizeof(int));
+
+​    //读结束，关闭管道
+
+​    close(pipe_xy_x1[0]);
+
+​    close(pipe_xy_x2[1]);
+
+​    pid_x=getpid();
+
+​    printf("F_x进程的进程号pid_x=%d\n",pid_x);
+
+​    exit(EXIT_SUCCESS); 
+
+  }
+
+  else{
+
+​    printf("second parent pid is :%d\n",getpid());
+
+​    close(pipe_xy_x1[0]);
+
+​    close(pipe_xy_x2[1]);
+
+​    close(pipe_xy_y1[0]);
+
+​    close(pipe_xy_y2[1]);
+
+​    printf("输入自变量x,y的值:\n");
+
+​    scanf("%d%d",&independent_variable_x,&independent_variable_y);
+
+​    write(pipe_xy_x1[1],&independent_variable_x,sizeof(int));
+
+​    write(pipe_xy_y1[1],&independent_variable_y,sizeof(int));
+
+​    read(pipe_xy_x2[0],&dependent_variable_x,sizeof(int));    //获取F_x的函数结果值
+
+​    read(pipe_xy_y2[0],&dependent_variable_y,sizeof(int));    //获取F_y的函数结果值
+
+​    dependent_variable_xy=dependent_variable_x+dependent_variable_y;
+
+​    printf("f(x)+f(y)=%d\n",dependent_variable_xy);
+
+​    close(pipe_xy_x1[1]);
+
+​    close(pipe_xy_x2[0]);
+
+​    close(pipe_xy_y1[1]);
+
+​    close(pipe_xy_y2[0]);
+
+​    exit(EXIT_SUCCESS);
+
+  }
+
+  }
+
+}
+
+ 
+
+int Fx(int x)
+
+{
+
+  if(x<2)
+
+  return 1;
+
+  else
+
+  return Fx(x-1)*x;
+
+}
+
+ 
+
+int Fy(int y)
+
+{
+
+  if(y<3)
+
+  return 1;
+
+  else
+
+  return Fy(y-1)+Fy(y-2);
+
+} ;
